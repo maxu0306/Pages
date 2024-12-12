@@ -1,0 +1,199 @@
+﻿@page "/inputProcessor04"
+
+<h3>健康状態チェック</h3>
+
+<div>
+    <label>体重 (kg):</label>
+    <input @bind="userInfo.Weight" type="number" placeholder="体重を入力" />
+</div>
+
+<div>
+    <label>身長 (cm):</label>
+    <input @bind="userInfo.Height" type="number" placeholder="身長を入力" />
+</div>
+
+<div>
+    <label>ウエスト (cm):</label>
+    <input @bind="userInfo.Waist" type="number" placeholder="ウエストを入力" />
+</div>
+
+<div>
+    <label>ヒップ (cm):</label>
+    <input @bind="userInfo.Hip" type="number" placeholder="ヒップを入力" />
+</div>
+
+<div>
+    <label>体脂肪率 (%):</label>
+    <input @bind="userInfo.BodyFatPercentage" type="number" step="0.1" placeholder="体脂肪率を入力" />
+</div>
+
+<div>
+    <label>平均睡眠時間 (時間):</label>
+    <input @bind="userInfo.SleepHours" type="number" step="0.1" placeholder="平均睡眠時間を入力" />
+</div>
+
+<div>
+    <label>年齢:</label>
+    <input @bind="userInfo.Age" type="number" placeholder="年齢を入力" />
+</div>
+
+<div>
+    <label>性別:</label>
+    <select @bind="userInfo.Gender">
+        <option value="Male">男性</option>
+        <option value="Female">女性</option>
+    </select>
+</div>
+
+<button @onclick="ProcessHealthData">健康チェック</button>
+
+@if (!string.IsNullOrEmpty(resultMessage))
+{
+    <div>
+        <h4>健康チェック結果:</h4>
+        <pre>@resultMessage</pre>
+    </div>
+}
+
+@code {
+    private UserInfo userInfo = new UserInfo();
+    private string resultMessage;
+
+    private void ProcessHealthData()
+    {
+        resultMessage = string.Empty;
+
+        if (userInfo.Weight > 0 && userInfo.Height > 0 && userInfo.Age > 0)
+        {
+            // BMIの計算
+            double bmi = CalculateBMI(userInfo.Height, userInfo.Weight);
+            string bmiStatus = GetBMIStatus(bmi);
+
+            // 体脂肪率の評価
+            string bodyFatStatus = EvaluateBodyFat(userInfo.BodyFatPercentage);
+
+            // BMRの計算
+            double bmr = CalculateBMR(userInfo.Age, userInfo.Weight, userInfo.Height, userInfo.Gender);
+
+            // ウエスト・ヒップ比の計算
+            double whr = CalculateWHR(userInfo.Waist, userInfo.Hip);
+            string whrStatus = EvaluateWHR(whr);
+
+            // 健康状態チェック
+            string sleepStatus = CheckSleep(userInfo.SleepHours);
+            string ageHealthStatus = GetAgeHealthStatus(userInfo.Age);
+            string genderHealthAdvice = GetGenderHealthAdvice(userInfo.Gender);
+            string exerciseRecommendation = GetExerciseRecommendation(userInfo.Weight, userInfo.Age);
+
+            // 結果のメッセージを組み立て
+            resultMessage = $"BMI: {bmi} ({bmiStatus})\n";
+            resultMessage += $"体脂肪率: {userInfo.BodyFatPercentage}% ({bodyFatStatus})\n";
+            resultMessage += $"基礎代謝量 (BMR): {bmr} kcal/日\n";
+            resultMessage += $"ウエスト・ヒップ比 (WHR): {whr} ({whrStatus})\n";
+            resultMessage += $"平均睡眠時間: {userInfo.SleepHours}時間 ({sleepStatus})\n";
+            resultMessage += $"年齢に基づく健康アドバイス: {ageHealthStatus}\n";
+            resultMessage += $"性別による健康アドバイス: {genderHealthAdvice}\n";
+            resultMessage += $"運動推奨時間: {exerciseRecommendation}\n";
+        }
+        else
+        {
+            resultMessage = "すべてのデータを正しく入力してください。";
+        }
+    }
+
+    private double CalculateBMI(double height, double weight)
+    {
+        height = height / 100; // cm to meters
+        return weight / (height * height);
+    }
+
+    private string GetBMIStatus(double bmi)
+    {
+        if (bmi < 18.5) return "痩せ型";
+        if (bmi >= 18.5 && bmi < 25) return "正常体重";
+        if (bmi >= 25 && bmi < 30) return "過体重";
+        return "肥満";
+    }
+
+    private string EvaluateBodyFat(double bodyFat)
+    {
+        if (bodyFat < 15) return "低い（体脂肪が不足しています）";
+        if (bodyFat >= 15 && bodyFat < 25) return "標準的";
+        if (bodyFat >= 25 && bodyFat < 30) return "高い（体脂肪が多めです）";
+        return "非常に高い（過剰な体脂肪です）";
+    }
+
+    private double CalculateBMR(int age, double weight, double height, string gender)
+    {
+        if (gender == "Male")
+        {
+            return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+        }
+        else // Female
+        {
+            return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+        }
+    }
+
+    private double CalculateWHR(double waist, double hip)
+    {
+        return waist / hip;
+    }
+
+    private string EvaluateWHR(double whr)
+    {
+        if (whr < 0.8) return "健康的（女性）または非常に健康的（男性）";
+        if (whr >= 0.8 && whr < 0.9) return "注意が必要";
+        return "危険（心血管疾患のリスクが高い可能性）";
+    }
+
+    private string CheckSleep(double sleepHours)
+    {
+        if (sleepHours < 7) return "睡眠不足です。十分な睡眠が必要です。";
+        if (sleepHours >= 7 && sleepHours <= 8) return "理想的な睡眠時間です。";
+        return "過剰な睡眠です。";
+    }
+
+    private string GetAgeHealthStatus(int age)
+    {
+        if (age < 18)
+            return "若年層には十分な栄養と睡眠が必要です。成長期をサポートする運動を推奨します。";
+        else if (age < 60)
+            return "成人期にはバランスの取れた食事と適度な運動が重要です。運動習慣をつけましょう。";
+        else
+            return "高齢者の健康管理は骨密度と心血管健康に注力しましょう。軽い運動が推奨されます。";
+    }
+
+    private string GetGenderHealthAdvice(string gender)
+    {
+        if (gender == "Male")
+        {
+            return "男性には筋力トレーニングを含む運動をお勧めします。";
+        }
+        else
+        {
+            return "女性には骨密度を保つためにカルシウムを多く摂取することが重要です。";
+        }
+    }
+
+    private string GetExerciseRecommendation(double weight, int age)
+    {
+        if (weight > 25 && age < 60)
+        {
+            return "減量のために、週に3～5回の有酸素運動をお勧めします。";
+        }
+        return "運動を定期的に行い、健康を維持しましょう。";
+    }
+
+    public class UserInfo
+    {
+        public double Weight { get; set; }
+        public double Height { get; set; }
+        public double Waist { get; set; }
+        public double Hip { get; set; }
+        public double BodyFatPercentage { get; set; }
+        public double SleepHours { get; set; }
+        public int Age { get; set; }
+        public string Gender { get; set; }
+    }
+}

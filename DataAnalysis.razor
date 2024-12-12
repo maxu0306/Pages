@@ -1,0 +1,187 @@
+﻿@page "/inputProcessor00"
+@using System
+@inject NavigationManager Navigation
+
+<h3>入力データ解析①</h3>
+
+<div>
+    <label for="userInput">入力してください（数値または文字列）:</label>
+    <input type="text" id="userInput" @bind="userInput" />
+    <button @onclick="ProcessInput">送信</button>
+</div>
+
+<!-- テンプレート/ガイドラインの表示 -->
+<div>
+    <h4>入力例:</h4>
+    <ul>
+        <li><strong>数値の場合:</strong> 42, -10, 0, 7 などの整数を入力</li>
+        <li><strong>文字列の場合:</strong> "Hello World", "Blazorは面白い", "12345" などの任意のテキスト</li>
+        <li><strong>入力に関する注意:</strong> 空白を含む文字列はスペースを区切りにして解析されます。</li>
+    </ul>
+</div>
+
+@if (!string.IsNullOrEmpty(result))
+{
+    <h4>結果:</h4>
+    <pre>@result</pre>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p style="color:red">@errorMessage</p>
+}
+
+@code {
+    private string userInput = string.Empty;
+    private string result = string.Empty;
+    private string errorMessage = string.Empty;
+
+    // ユーザー入力を処理するメソッド
+    private void ProcessInput()
+    {
+        errorMessage = string.Empty;
+        result = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(userInput))
+        {
+            errorMessage = "入力が空です。数字または文字列を入力してください。";
+            return;
+        }
+
+        int number;
+
+        // 数値入力か文字列かの判定
+        if (int.TryParse(userInput, out number))
+        {
+            result = ProcessNumber(number);
+        }
+        else
+        {
+            result = ProcessString(userInput);
+        }
+    }
+
+    // 数値を処理するメソッド
+    private string ProcessNumber(int num)
+    {
+        var resultMessage = $"入力された数値: {num}\n";
+
+        // 負の数、ゼロ、正の数のチェック
+        if (num < 0)
+        {
+            resultMessage += "負の数です\n";
+            resultMessage += num % 2 == 0 ? "偶数です\n" : "奇数です\n";
+        }
+        else if (num == 0)
+        {
+            resultMessage += "ゼロです\n";
+        }
+        else
+        {
+            resultMessage += "正の数です\n";
+            resultMessage += num % 2 == 0
+                ? $"偶数です\n{(num % 4 == 0 ? "4で割り切れます\n" : "4で割り切れません\n")}"
+                : $"奇数です\n{(num % 3 == 0 ? "3で割り切れます\n" : "3で割り切れません\n")}";
+        }
+
+        // 素数チェック
+        if (num > 1 && IsPrime(num))
+        {
+            resultMessage += "素数です\n";
+        }
+
+        // 平方根
+        double squareRoot = Math.Sqrt(num);
+        resultMessage += $"平方根: {squareRoot:F2}\n";
+
+        // べき乗 (例えば2のべき乗)
+        resultMessage += $"2の{num}乗: {Math.Pow(2, num)}\n";
+
+        return resultMessage;
+    }
+
+    // 文字列を処理するメソッド
+    private string ProcessString(string str)
+    {
+        var resultMessage = $"入力された文字列: {str}\n";
+
+        // 空文字列のチェック
+        if (string.IsNullOrEmpty(str))
+        {
+            return "空の文字列です";
+        }
+
+        resultMessage += $"文字列の長さ: {str.Length}\n";
+
+        // 文字列長による分類
+        if (str.Length < 5)
+        {
+            resultMessage += "短い文字列です\n";
+        }
+        else if (str.Length < 10)
+        {
+            resultMessage += "中程度の長さの文字列です\n";
+        }
+        else
+        {
+            resultMessage += "長い文字列です\n";
+        }
+
+        // 大文字小文字のチェック
+        if (str.ToLower() == str)
+        {
+            resultMessage += "全て小文字です\n";
+        }
+        else if (str.ToUpper() == str)
+        {
+            resultMessage += "全て大文字です\n";
+        }
+        else
+        {
+            resultMessage += "大文字と小文字が混在しています\n";
+        }
+
+        // 文字列の頻出単語をカウント
+        var wordCount = CountWordFrequency(str);
+        resultMessage += "頻出単語:\n";
+        foreach (var word in wordCount.OrderByDescending(k => k.Value))
+        {
+            resultMessage += $"{word.Key}: {word.Value}\n";
+        }
+
+        return resultMessage;
+    }
+
+    // 素数判定
+    private bool IsPrime(int num)
+    {
+        if (num < 2) return false;
+        for (int i = 2; i <= Math.Sqrt(num); i++)
+        {
+            if (num % i == 0) return false;
+        }
+        return true;
+    }
+
+    // 単語頻出回数カウント
+    private Dictionary<string, int> CountWordFrequency(string str)
+    {
+        var words = str.Split(new[] { ' ', '\n', '\r', '.', ',', ';', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+        var wordCount = new Dictionary<string, int>();
+
+        foreach (var word in words)
+        {
+            var lowerWord = word.ToLower();
+            if (wordCount.ContainsKey(lowerWord))
+            {
+                wordCount[lowerWord]++;
+            }
+            else
+            {
+                wordCount[lowerWord] = 1;
+            }
+        }
+
+        return wordCount;
+    }
+}

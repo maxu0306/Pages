@@ -1,0 +1,185 @@
+﻿@page "/inputProcessor03"
+
+<h3>ユーザー情報入力</h3>
+
+<div>
+    <label>名:</label>
+    <input @bind="firstName" type="text" placeholder="名を入力" />
+</div>
+
+<div>
+    <label>姓:</label>
+    <input @bind="lastName" type="text" placeholder="姓を入力" />
+</div>
+
+<div>
+    <label>年齢:</label>
+    <input @bind="ageInput" type="text" placeholder="年齢を入力" />
+</div>
+
+<div>
+    <label>メールアドレス:</label>
+    <input @bind="email" type="email" placeholder="メールアドレスを入力" />
+</div>
+
+<button @onclick="Submit">送信</button>
+
+<h4>ユーザー情報一覧</h4>
+@if (users.Any())
+{
+    <ul>
+        @foreach (var user in users)
+        {
+            <li>
+                @user.GetDetails()
+                <button @onclick="() => EditUser(user)">編集</button>
+                <button @onclick="() => DeleteUser(user)">削除</button>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>まだユーザー情報はありません。</p>
+}
+
+<h4>ユーザー検索</h4>
+<div>
+    <label>名前で検索:</label>
+    <input @bind="searchName" type="text" placeholder="名前を入力" />
+    <button @onclick="SearchUser">検索</button>
+</div>
+
+<h4>検索結果</h4>
+@if (searchResults.Any())
+{
+    <ul>
+        @foreach (var user in searchResults)
+        {
+            <li>@user.GetDetails()</li>
+        }
+    </ul>
+}
+else if (!string.IsNullOrEmpty(searchName))
+{
+    <p>検索結果が見つかりません。</p>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div style="color:red;">
+        <h4>@errorMessage</h4>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div style="color:green;">
+        <h4>@successMessage</h4>
+    </div>
+}
+
+@code {
+    private string firstName;
+    private string lastName;
+    private string ageInput;
+    private string email;
+    private string searchName;
+    private string errorMessage;
+    private string successMessage;
+    private List<User> users = new List<User>();
+    private List<User> searchResults = new List<User>();
+
+    private void Submit()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (int.TryParse(ageInput, out int age) && age > 0)
+        {
+            // ユーザーを作成
+            User newUser = new User(firstName, lastName, age, email);
+
+            // ユーザー情報をリストに追加
+            users.Add(newUser);
+
+            // ユーザー情報をリスト表示
+            successMessage = $"ユーザー {newUser.GetFullName()} を追加しました。";
+
+            // 入力フィールドをリセット
+            firstName = "";
+            lastName = "";
+            ageInput = "";
+            email = "";
+        }
+        else
+        {
+            errorMessage = "無効な年齢です。正の整数を入力してください。";
+        }
+    }
+
+    private void EditUser(User user)
+    {
+        firstName = user.FirstName;
+        lastName = user.LastName;
+        ageInput = user.Age.ToString();
+        email = user.Email;
+
+        // ユーザーリストから削除して、編集用に処理
+        users.Remove(user);
+    }
+
+    private void DeleteUser(User user)
+    {
+        users.Remove(user);
+        successMessage = $"{user.GetFullName()} を削除しました。";
+    }
+
+    private void SearchUser()
+    {
+        if (!string.IsNullOrEmpty(searchName))
+        {
+            searchResults = users.Where(u => u.FirstName.Contains(searchName, StringComparison.OrdinalIgnoreCase) || u.LastName.Contains(searchName, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        else
+        {
+            searchResults.Clear();
+        }
+    }
+
+    // User クラス
+    public class User
+    {
+        public string FirstName { get; private set; }
+        public string LastName { get; private set; }
+        public int Age { get; private set; }
+        public string Email { get; private set; }
+
+        public User(string firstName, string lastName, int age, string email)
+        {
+            FirstName = firstName;
+            LastName = lastName;
+            Age = age;
+            Email = email;
+        }
+
+        public string GetFullName()
+        {
+            return $"{FirstName} {LastName}";
+        }
+
+        public string GetCategory()
+        {
+            if (Age < 18) return "子供";
+            if (Age < 30) return "若者";
+            if (Age < 50) return "中年";
+            return "高齢者";
+        }
+
+        public string GetDetails()
+        {
+            string ageMessage = Age < 30 ? "素晴らしい未来が待っています！" : "人生の経験が豊富ですね！";
+            return $"名前: {GetFullName()}, 年齢: {Age}歳, カテゴリ: {GetCategory()}, メールアドレス: {Email}, メッセージ: {ageMessage}";
+        }
+    }
+}

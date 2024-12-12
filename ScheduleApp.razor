@@ -1,0 +1,131 @@
+﻿@page "/schedule"
+@inject IJSRuntime JSRuntime
+
+<h1>スケジュール管理アプリ</h1>
+
+<div class="calendar-container">
+    <h3>@currentMonth.ToString("yyyy年 MM月")</h3>
+    <button @onclick="PreviousMonth">前の月</button>
+    <button @onclick="NextMonth">次の月</button>
+    <div class="calendar-grid">
+        @foreach (var day in DaysOfWeek)
+        {
+            <div class="calendar-header">@day</div>
+        }
+        @foreach (var week in Calendar)
+        {
+            @foreach (var date in week)
+            {
+                <div class="calendar-cell @(date.Month != currentMonth.Month ? "other-month" : "") @(date == DateTime.Today ? "today" : "")"
+                     @onclick="() => SelectDate(date)">
+                    <span>@date.Day</span>
+                    @if (tasks.ContainsKey(date))
+                    {
+                        <div class="task-marker"></div>
+                        <div class="task-count">タスク: @tasks[date].Count</div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (selectedDate != null)
+{
+    <div class="task-editor">
+        <h4>@selectedDate.Value.ToString("yyyy年MM月dd日") のタスク</h4>
+        <textarea @bind="taskInput" placeholder="タスクを入力してください"></textarea>
+        <input type="datetime-local" @bind="taskDateTime" />
+        <button @onclick="SaveTask">保存</button>
+        <button @onclick="DeleteTask">削除</button>
+
+        @if (tasks.ContainsKey(selectedDate.Value))
+        {
+            <ul class="task-list">
+                @foreach (var task in tasks[selectedDate.Value])
+                {
+                    <li>@task.Item1 (@task.Item2.ToString("yyyy/MM/dd HH:mm"))</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    private DateTime currentMonth = DateTime.Today;
+    private DateTime? selectedDate;
+    private string taskInput = string.Empty;
+    private DateTime taskDateTime = DateTime.Now;
+    private Dictionary<DateTime, List<(string, DateTime)>> tasks = new Dictionary<DateTime, List<(string, DateTime)>>();
+
+    private readonly string[] DaysOfWeek = { "日", "月", "火", "水", "木", "金", "土" };
+
+    private List<List<DateTime>> Calendar
+    {
+        get
+        {
+            var firstDayOfMonth = new DateTime(currentMonth.Year, currentMonth.Month, 1);
+            var daysInMonth = DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
+            var days = Enumerable.Range(1, daysInMonth).Select(day => new DateTime(currentMonth.Year, currentMonth.Month, day)).ToList();
+
+            // 前月の日付を追加
+            var startOfWeek = (int)firstDayOfMonth.DayOfWeek;
+            for (int i = 1; i <= startOfWeek; i++)
+            {
+                days.Insert(0, firstDayOfMonth.AddDays(-i));
+            }
+
+            // 次月の日付を追加
+            var endOfWeek = 6 - (int)new DateTime(currentMonth.Year, currentMonth.Month, daysInMonth).DayOfWeek;
+            for (int i = 1; i <= endOfWeek; i++)
+            {
+                days.Add(new DateTime(currentMonth.Year, currentMonth.Month, daysInMonth).AddDays(i));
+            }
+
+            // 7日ごとのリストに分割
+            return days.Select((date, index) => new { date, index })
+                       .GroupBy(x => x.index / 7)
+                       .Select(g => g.Select(x => x.date).ToList())
+                       .ToList();
+        }
+    }
+
+    private void PreviousMonth()
+    {
+        currentMonth = currentMonth.AddMonths(-1);
+    }
+
+    private void NextMonth()
+    {
+        currentMonth = currentMonth.AddMonths(1);
+    }
+
+    private void SelectDate(DateTime date)
+    {
+        selectedDate = date;
+        taskInput = string.Empty;
+        taskDateTime = DateTime.Now;
+    }
+
+    private void SaveTask()
+    {
+        if (selectedDate.HasValue && !string.IsNullOrWhiteSpace(taskInput))
+        {
+            if (!tasks.ContainsKey(selectedDate.Value))
+            {
+                tasks[selectedDate.Value] = new List<(string, DateTime)>();
+            }
+            tasks[selectedDate.Value].Add((taskInput, taskDateTime));
+            taskInput = string.Empty;
+            taskDateTime = DateTime.Now;
+        }
+    }
+
+    private void DeleteTask()
+    {
+        if (selectedDate.HasValue && tasks.ContainsKey(selectedDate.Value))
+        {
+            tasks.Remove(selectedDate.Value);
+        }
+    }
+}
